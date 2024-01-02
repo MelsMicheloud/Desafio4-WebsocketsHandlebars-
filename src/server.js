@@ -1,42 +1,46 @@
 import express from 'express'
-import userRoutes from './routes/users.routes.js'
-import cartRoutes from './routes/carts.routes.js'
+import productsRoutes from './routes/products.routes.js'
+import { __dirname } from './utils.js'
 import handlebars from 'express-handlebars'
+import viewsRoutes from './routes/views.routes.js'
 import { Server } from 'socket.io'
+import socketProducts from './listeners/socketProducts.js'
 
 const server = express()
 const PORT = 8080
 
-server.use(express.static("src/public"))
+//rutas
+
+server.use(express.static(__dirname + "/public")) //archivos estaticos
 server.use(express.json())
 server.use(express.urlencoded({extended:true}))
 
-server.use('/api/users', userRoutes)
-server.use('/api/carts', cartRoutes)
-//falta
-//motor para servir plantilla
+server.use('/api', productsRoutes)
+server.use('/', viewsRoutes)
+
+const httpServer = server.listen(PORT, () =>{
+    try {
+        console.log(`Escuchando el puerto ${PORT}`);
+        console.log(`\t1). http://localhost:${PORT}/api/products`)
+        console.log(`\t2). http://localhost:${PORT}/api/carts`);
+    }
+    catch (err) {
+        console.log(err);
+    }
+})
+
+//HANDLEBARS
 
 server.engine('handlebars', handlebars.engine())
-server.set('views', 'src/views')
+server.set('views', __dirname+ '/views')
 server.set('view engine', 'handlebars')
 
-//http:
-server.get('/',(req, res) => {
-    res.render('index', {})
-})
+//io
+const socketServer = new Server(httpServer)
+socketProducts(socketServer)
 
 
-const httpServer = server.listen(PORT,()=>{
-    console.log(`Escuchando el puerto ${PORT}`)
-})
 
-//socket del lado del server
-const io = new Server(httpServer)
-
-io.on('connection', socket =>{ //detecta cuando se conecta el cliente
-    console.log("Cliente conectado")
-
-})
 
 
 
